@@ -16,7 +16,7 @@ const BASIC_FIELDS = [
   {key:'النوع', label:'النوع', type:'choice', options:['ذكر','أنثى']},
   {key:'الديانة', label:'الديانة', type:'choice', options:['مسلم','مسيحي','أخرى','غير محدد']},
   {key:'الجنسية', label:'الجنسية', type:'text'},
-  {key:'تاريخ الميلاد', label:'تاريخ الميلاد', type:'date'},
+  {key:'تاريخ الميلاد', label:'تاريخ الميلاد', type:'text'},
   {key:'محل الميلاد', label:'محل الميلاد', type:'text'},
   {key:'محافظة السكن', label:'محافظة السكن', type:'text'},
   {key:'محافظة الميلاد', label:'محافظة الميلاد', type:'text'},
@@ -25,28 +25,28 @@ const BASIC_FIELDS = [
   {key:'تليفون المنزل', label:'تليفون المنزل', type:'text', english:true},
   {key:'المحمول', label:'المحمول', type:'text', english:true},
   {key:'الرقم العسكري', label:'الرقم العسكري', type:'text', english:true},
-  {key:'عام الالتحاق', label:'عام الالتحاق', type:'year', english:true}
+  {key:'عام الالتحاق', label:'عام الالتحاق', type:'text', english:true}
 ];
 
 const CAREER_FIELDS = [
   {key:'معرّف الخريج (الكود)', label:'كود الخريج', type:'text', required:true, english:true},
   {key:'المؤهل السابق', label:'المؤهل السابق', type:'text'},
-  {key:'المعدل التراكمي', label:'المعدل التراكمي', type:'number', english:true},
+  {key:'المعدل التراكمي', label:'المعدل التراكمي', type:'text', english:true},
   {key:'التقدير', label:'التقدير', type:'text'},
   {key:'التقدير العام', label:'التقدير العام', type:'text'},
   {key:'البرنامج', label:'البرنامج', type:'text'},
-  {key:'الدرجة العظمى', label:'الدرجة العظمى', type:'number', english:true},
+  {key:'الدرجة العظمى', label:'الدرجة العظمى', type:'text', english:true},
   {key:'تقدير المشروع', label:'تقدير المشروع', type:'text'},
   {key:'تقدير المشروع العام', label:'تقدير المشروع العام', type:'text'},
-  {key:'الساعات المكتسبة', label:'الساعات المكتسبة', type:'number', english:true},
+  {key:'الساعات المكتسبة', label:'الساعات المكتسبة', type:'text', english:true},
   {key:'التربية العسكرية', label:'التربية العسكرية', type:'choice', options:['اجتاز','لم يجتز','غير منطبق']},
-  {key:'المجموع', label:'المجموع', type:'number', english:true},
-  {key:'النسبة', label:'النسبة', type:'percent', english:true},
-  {key:'دور التخرج', label:'دور التخرج', type:'choice', options:['مايو','أكتوبر','دور أول','دور ثان']},
-  {key:'سنة التخرج', label:'سنة التخرج', type:'year', english:true},
+  {key:'المجموع', label:'المجموع', type:'text', english:true},
+  {key:'النسبة', label:'النسبة', type:'text', english:true},
+  {key:'دور التخرج', label:'دور التخرج', type:'choice', options:['مايو','أكتوبر','سبتمبر','دور أول','دور ثان']},
+  {key:'سنة التخرج', label:'سنة التخرج', type:'text', english:true},
   {key:'جهة العمل الحالية', label:'جهة العمل الحالية', type:'text'},
   {key:'المسمى الوظيفي', label:'المسمى الوظيفي', type:'text'},
-  {key:'تاريخ بداية العمل', label:'تاريخ بداية العمل', type:'date'},
+  {key:'تاريخ بداية العمل', label:'تاريخ بداية العمل', type:'text'},
   {key:'الكورسات', label:'الكورسات', type:'text'},
   {key:'الدراسات العليا', label:'الدراسات العليا', type:'text'}
 ];
@@ -59,6 +59,37 @@ function doGet() {
 
 function include(filename) {
   return HtmlService.createHtmlOutputFromFile(filename).getContent();
+}
+
+/** JSON API for the GitHub Pages frontend. */
+function doPost(e) {
+  try {
+    const payload = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const args = Array.isArray(payload.args) ? payload.args : [];
+    const handlers = {
+      apiLogin: function(){return apiLogin(args[0],args[1]);},
+      apiLogout: function(){return apiLogout(args[0]);},
+      apiBootstrap: function(){return apiBootstrap(args[0]);},
+      apiReportData: function(){return apiReportData(args[0],args[1]);},
+      apiListUsers: function(){return apiListUsers(args[0]);},
+      apiAddUser: function(){return apiAddUser(args[0],args[1]);},
+      apiSetUserPassword: function(){return apiSetUserPassword(args[0],args[1],args[2]);},
+      apiChangeUsername: function(){return apiChangeUsername(args[0],args[1],args[2]);},
+      apiSetUserActive: function(){return apiSetUserActive(args[0],args[1],args[2]);},
+      apiChangePassword: function(){return apiChangePassword(args[0],args[1],args[2]);},
+      apiSearchGraduates: function(){return apiSearchGraduates(args[0],args[1]);},
+      apiGetGraduate: function(){return apiGetGraduate(args[0],args[1]);},
+      apiSaveGraduate: function(){return apiSaveGraduate(args[0],args[1]);}
+    };
+    if (!payload || typeof payload.method !== 'string' || !handlers[payload.method]) throw new Error('الطلب غير معروف.');
+    return jsonOutput_({ok:true,data:handlers[payload.method]()});
+  } catch (err) {
+    return jsonOutput_({ok:false,error:String(err && err.message ? err.message : err)});
+  }
+}
+
+function jsonOutput_(value) {
+  return ContentService.createTextOutput(JSON.stringify(value)).setMimeType(ContentService.MimeType.JSON);
 }
 
 /** Username/password sign-in for system users. */
@@ -78,8 +109,9 @@ function apiLogin(usernameInput, passwordInput) {
   }
   cache.remove(attemptKey);
   const token = Utilities.getUuid() + Utilities.getUuid();
-  cache.put('gts-session-v4:' + hash_(token), JSON.stringify({username:username, name:user.name, role:user.role, passwordHash:user.passwordHash}), APP.SESSION_TTL_SECONDS);
-  return {ok:true, token:token, username:username, name:user.name, role:user.role};
+  const role=user.role==='user'?'officer':user.role;
+  cache.put('gts-session-v4:' + hash_(token), JSON.stringify({username:username, name:user.name, role:role, passwordHash:user.passwordHash}), APP.SESSION_TTL_SECONDS);
+  return {ok:true, token:token, username:username, name:user.name, role:role};
 }
 
 function apiLogout(token) {
@@ -98,7 +130,8 @@ function apiBootstrap(token) {
   });
   return {
     role:auth.role, username:auth.username, name:auth.name, canManageUsers:auth.role === 'admin',
-    stats:{total:records.length, employed:records.filter(function(x){return !!x.employer;}).length, postgraduate:records.filter(function(x){return !!x.postgraduate;}).length},
+    stats:{total:records.length, employed:records.filter(function(x){return !!x.employer;}).length, postgraduate:records.filter(function(x){return !!x.postgraduate;}).length, incomplete:records.filter(function(x){return !x.name || !x.program || !x.year;}).length},
+    programStats:countBy_(records,'program'), yearStats:countBy_(records,'year'),
     recent:records.slice(-10).reverse(), basicFields:publicFieldDefs_(BASIC_FIELDS), careerFields:publicFieldDefs_(CAREER_FIELDS)
   };
 }
@@ -133,7 +166,7 @@ function apiReportData(token, filters) {
 }
 function apiListUsers(token) {
   requireRole_(token,'admin');
-  return ensureUsersSheet_().map(function(u){return {username:u.username,name:u.name,role:u.role,active:u.active};});
+  return ensureUsersSheet_().map(function(u){return {username:u.username,name:u.name,role:u.role==='user'?'officer':u.role,active:u.active};});
 }
 function apiAddUser(token, input) {
   const actor = requireRole_(token,'admin');
@@ -141,7 +174,7 @@ function apiAddUser(token, input) {
   const username = normalizeUsername_(input.username);
   const name = cleanText_(input.name);
   const password = String(input.password || '');
-  const role = input.role === 'admin' ? 'admin' : 'user';
+  const role = ['admin','officer','inquiry'].indexOf(input.role) >= 0 ? input.role : 'inquiry';
   if (!/^[\p{L}\p{N}._-]{2,40}$/u.test(username)) throw new Error('اسم المستخدم من 2 إلى 40 حرفًا، ويمكن استخدام الحروف والأرقام والنقطة والشرطة.');
   if (!name || name.length > 100) throw new Error('الاسم الظاهر مطلوب وبحد أقصى 100 حرف.');
   if (password.length < 8) throw new Error('كلمة المرور يجب أن تكون 8 أحرف على الأقل.');
@@ -197,7 +230,8 @@ function apiChangePassword(token, currentPassword, newPassword) {
 }
 function apiSearchGraduates(token, query) {
   requireSession_(token);
-  const q = cleanText_(query).toLocaleLowerCase();
+  const opts = (query && typeof query === 'object') ? query : {q:query};
+  const q = cleanText_(opts.q).toLocaleLowerCase(), program=cleanText_(opts.program), year=cleanText_(opts.year), employment=cleanText_(opts.employment), sort=cleanText_(opts.sort||'name');
   const basic = readTable_(APP.BASIC_SHEET, BASIC_FIELDS);
   const career = readTable_(APP.CAREER_SHEET, CAREER_FIELDS);
   const careerById = indexRows_(career.rows, career.fields);
@@ -208,9 +242,12 @@ function apiSearchGraduates(token, query) {
     const id = item['معرّف الخريج (الكود)'];
     const job = careerById[id] || {};
     const searchable = row.join(' ').toLocaleLowerCase() + ' ' + Object.keys(job).map(function(k){return job[k];}).join(' ').toLocaleLowerCase();
-    if (!q || searchable.indexOf(q) !== -1) matches.push(summaryRecord_(item, job));
+    const rec=summaryRecord_(item, job);
+    if ((!q || searchable.indexOf(q) !== -1) && (!program || rec.program===program) && (!year || String(rec.year)===year) && (!employment || employment==='all' || (employment==='employed' ? !!rec.employer : !rec.employer))) matches.push(rec);
   });
-  return matches.slice(0,150);
+  matches.sort(function(a,b){return sort==='year' ? String(b.year).localeCompare(String(a.year)) : sort==='program' ? String(a.program).localeCompare(String(b.program),'ar') : String(a.name).localeCompare(String(b.name),'ar');});
+  const page=Math.max(1,Number(opts.page)||1), pageSize=Math.min(100,Math.max(10,Number(opts.pageSize)||25));
+  return {records:matches.slice((page-1)*pageSize,page*pageSize),total:matches.length,page:page,pageSize:pageSize,pages:Math.max(1,Math.ceil(matches.length/pageSize))};
 }
 
 function apiGetGraduate(token, graduateId) {
@@ -221,7 +258,7 @@ function apiGetGraduate(token, graduateId) {
 }
 
 function apiSaveGraduate(token, payload) {
-  requireSession_(token);
+  requireEditor_(token);
   if (!payload || !payload.basic || !payload.career) throw new Error('بيانات النموذج غير مكتملة.');
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) throw new Error('هناك عملية حفظ أخرى. حاول بعد لحظات.');
@@ -264,6 +301,11 @@ function requireRole_(token, role) {
   if (role === 'admin' && auth.role !== 'admin') throw new Error('هذه العملية متاحة لمدير النظام فقط.');
   return auth;
 }
+function requireEditor_(token) {
+  const auth=requireSession_(token);
+  if (auth.role==='inquiry') throw new Error('حساب الاستعلام يسمح بالعرض والبحث فقط.');
+  return auth;
+}
 
 function requireSession_(token) {
   if (!token || typeof token !== 'string' || token.length < 32) throw new Error('سجّل الدخول للمتابعة.');
@@ -271,7 +313,7 @@ function requireSession_(token) {
   if (!raw) throw new Error('انتهت الجلسة. سجّل الدخول مرة أخرى.');
   const auth = JSON.parse(raw);
   const current = ensureUsersSheet_().find(function(u){return u.username === auth.username;});
-  if (!current || !current.active || current.role !== auth.role || current.passwordHash !== auth.passwordHash) throw new Error('تم إيقاف الحساب أو تغيير بياناته. سجّل الدخول مرة أخرى.');
+  if (!current || !current.active || (current.role==='user'?'officer':current.role) !== auth.role || current.passwordHash !== auth.passwordHash) throw new Error('تم إيقاف الحساب أو تغيير بياناته. سجّل الدخول مرة أخرى.');
   return auth;
 }
 const USERS_HEADERS_ = ['username','name','password_salt','password_hash','role','active','created_by','created_at','updated_at'];
@@ -323,7 +365,7 @@ function ensureUsersSheet_() {
   }
   const last = sh.getLastRow();
   if (last < 2) return [];
-  return sh.getRange(2,1,last-1,USERS_HEADERS_.length).getValues().map(function(r,i){return {username:normalizeUsername_(r[0]),name:cleanText_(r[1]),salt:String(r[2]||''),passwordHash:String(r[3]||''),role:r[4]==='admin'?'admin':'user',active:r[5]===true || String(r[5]).toLowerCase()==='true' || String(r[5])==='1',createdBy:String(r[6]||''),createdAt:r[7],row:i+2};}).filter(function(u){return !!u.username;});
+  return sh.getRange(2,1,last-1,USERS_HEADERS_.length).getValues().map(function(r,i){const stored=String(r[4]||'user');return {username:normalizeUsername_(r[0]),name:cleanText_(r[1]),salt:String(r[2]||''),passwordHash:String(r[3]||''),role:['admin','officer','inquiry'].indexOf(stored)>=0?stored:'user',active:r[5]===true || String(r[5]).toLowerCase()==='true' || String(r[5])==='1',createdBy:String(r[6]||''),createdAt:r[7],row:i+2};}).filter(function(u){return !!u.username;});
 }
 function uniqueUsername_(base,used){
   let username=normalizeUsername_(base),suffix=2;
@@ -351,7 +393,7 @@ function readTable_(sheetName, fields) {
   if (mismatch >= 0) throw new Error('عناوين أعمدة الشيت «' + sheetName + '» لا تطابق القالب عند العمود ' + (mismatch+1) + '.');
   const last = Math.max(sheet.getLastRow(), APP.HEADER_ROW);
   const count = Math.max(0,last-APP.FIRST_DATA_ROW+1);
-  const rows = count ? sheet.getRange(APP.FIRST_DATA_ROW,1,count,expected.length).getValues().map(function(r,i){return {values:r.map(function(v,j){return formatCell_(v,fields[j]);}),rowNumber:APP.FIRST_DATA_ROW+i};}).filter(function(entry){return cleanText_(entry.values[0]) !== '';}) : [];
+  const rows = count ? sheet.getRange(APP.FIRST_DATA_ROW,1,count,expected.length).getDisplayValues().map(function(r,i){return {values:r.map(function(v){return String(v == null ? '' : v);}),rowNumber:APP.FIRST_DATA_ROW+i};}).filter(function(entry){return cleanText_(entry.values[0]) !== '';}) : [];
   return {sheet:sheet, fields:fields, rows:rows};
 }
 
@@ -399,19 +441,6 @@ function validateValue_(value, field) {
   const s = cleanText_(value);
   if (field.type === 'choice' && field.options.indexOf(s) === -1) throw new Error('قيمة غير صحيحة في «' + field.label + '».');
   if (field.type === 'email' && s && !isValidEmail_(s)) throw new Error('البريد الإلكتروني غير صحيح.');
-  if (field.type === 'year' && s && (!/^\d{4}$/.test(s) || Number(s)<1950 || Number(s)>2100)) throw new Error('السنة غير صحيحة في «' + field.label + '».');
-  if ((field.type === 'number' || field.type === 'percent') && s) {
-    const n = Number(s);
-    if (!Number.isFinite(n) || n < 0 || (field.type === 'percent' && n > 100)) throw new Error('القيمة الرقمية غير صحيحة في «' + field.label + '».');
-    return n;
-  }
-  if (field.type === 'year' && s) return Number(s);
-  if (field.type === 'date' && s) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) throw new Error('التاريخ يجب أن يكون بصيغة YYYY-MM-DD في «' + field.label + '».');
-    const date = new Date(s + 'T12:00:00');
-    if (isNaN(date.getTime())) throw new Error('التاريخ غير صحيح في «' + field.label + '».');
-    return date;
-  }
   if (s.length > 2000) throw new Error('النص أطول من المسموح في «' + field.label + '».');
   return s;
 }
@@ -459,6 +488,7 @@ function summaryRecord_(basic, career) {
     employer:career['جهة العمل الحالية'] || '', jobTitle:career['المسمى الوظيفي'] || '', postgraduate:career['الدراسات العليا'] || ''
   };
 }
+function countBy_(rows,key) { const out={}; rows.forEach(function(r){const value=cleanText_(r[key])||'غير محدد';out[value]=(out[value]||0)+1;});return out; }
 
 function publicFieldDefs_(fields) {
   return fields.map(function(f){return {key:f.key,label:f.label,type:f.type,required:!!f.required,english:!!f.english,options:f.options || []};});
