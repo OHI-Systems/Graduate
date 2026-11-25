@@ -31,7 +31,10 @@
     .footer{font:500 11px Montserrat,Arial,sans-serif;letter-spacing:.35px;color:#f1e1bc;opacity:.94;padding-top:22px}
     @keyframes ambientDrift{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(18px,14px,0) scale(1.08)}}
     @media(max-width:760px){.masthead{grid-template-columns:76px 1fr;gap:9px;min-height:0;padding:8px 4px 15px}.institute-logo{width:74px;height:68px}.brand h1{font-size:21px}.brand p{font-size:11px}.brand .subtitle{font-size:8px;letter-spacing:1px}.top-meta{grid-column:1/-1;justify-self:center;min-height:15px;text-align:center}.login-card{padding:23px 21px 25px}.login-logo{height:118px;width:min(210px,82%)}}
-    @media(prefers-reduced-motion:reduce){body::before,body::after{animation:none!important}.btn,.tab,.stat,.report-card,.users-card,.field,.searchbar input{transition:none!important}}
+    /* Avoid Chrome GPU repaint artifacts while scrolling long data views. */
+    body::before,body::after{display:none!important;animation:none!important;filter:none!important}
+    .card{-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+    @media(prefers-reduced-motion:reduce){.btn,.tab,.stat,.report-card,.users-card,.field,.searchbar input{transition:none!important}}
   </style>
   <style>
     .report-card,.users-card{border:1px solid var(--line);border-radius:16px;padding:18px;background:#fff;margin-bottom:16px}.report-summary{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.report-summary span{background:#eef5f3;color:var(--teal);padding:8px 12px;border-radius:10px;font-size:13px}.user-actions{display:flex;gap:6px;flex-wrap:wrap}.btn.small{padding:7px 10px;font-size:12px}.btn.danger{background:#fdebea;color:#82342b}.account-form{margin-top:10px}
